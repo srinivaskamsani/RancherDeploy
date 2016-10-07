@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import requests as r
 import json
 import sys
