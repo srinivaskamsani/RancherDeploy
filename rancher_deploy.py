@@ -80,6 +80,7 @@ if __name__ == '__main__':
         env_vars = ast.literal_eval(sys.argv[3])
         ports = ast.literal_eval(sys.argv[4])
         imageUuid = sys.argv[5]
+        print(imageUuid)
         rancher_url = os.environ['RANCHER_URL']
         user = os.environ['RANCHER_USERNAME']
         passw = os.environ['RANCHER_PASSWORD']
