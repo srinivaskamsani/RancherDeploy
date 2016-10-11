@@ -40,6 +40,8 @@ class Rancher:
         if raw_resp.get('status') == 422:
             raise ValueError("Creating New service failed", raw_resp)
 
+        eps = r.get(self.rancher_url + '/v1/services/' + raw_resp['id']).json()
+        print(eps['publicEndpoints'][0])
         return raw_resp
 
     def upgrade_service(self, service_id, imageUuid, env_vars, ports):
@@ -51,7 +53,10 @@ class Rancher:
 
         while(self.get_service_status(service_id) != 'upgraded'):
             pass
-        r.post(self.rancher_url + "/v1/services/{sid}/?action=finishupgrade".format(sid=service_id))
+
+        resp = r.post(self.rancher_url + "/v1/services/{sid}/?action=finishupgrade".format(sid=service_id))
+        eps = resp.json()['publicEndpoints'][0]
+        print(ast.literal_eval(json.dumps(eps)))
 
     def deploy(self, stack_name, service_name, env_vars, ports, imageUuid):
 
@@ -80,7 +85,6 @@ if __name__ == '__main__':
         env_vars = ast.literal_eval(sys.argv[3])
         ports = ast.literal_eval(sys.argv[4])
         imageUuid = sys.argv[5]
-        print(imageUuid)
         rancher_url = os.environ['RANCHER_URL']
         user = os.environ['RANCHER_USERNAME']
         passw = os.environ['RANCHER_PASSWORD']
