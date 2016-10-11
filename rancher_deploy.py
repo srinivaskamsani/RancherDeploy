@@ -5,7 +5,6 @@ import sys
 import ast
 import os
 
-
 class Rancher:
     def __init__(self, rancher_url, user, passw):
         self.rancher_url = rancher_url
@@ -39,6 +38,9 @@ class Rancher:
 
         if raw_resp.get('status') == 422:
             raise ValueError("Creating New service failed", raw_resp)
+
+        while r.get(self.rancher_url + '/v1/services/' + raw_resp['id']).json()['state'] == 'activating':
+            pass
 
         eps = r.get(self.rancher_url + '/v1/services/' + raw_resp['id']).json()
         print(eps['publicEndpoints'][0])
