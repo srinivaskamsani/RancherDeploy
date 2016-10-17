@@ -44,8 +44,8 @@ class Rancher:
             pass
 
         eps = r.get(self.rancher_url + '/v1/services/' + raw_resp['id']).json()
-        print("TEST_SERVER_HOST=" + eps['publicEndpoints'][0]['ipAddress'])
-        print("TEST_SERVER_PORT=" + str(eps['publicEndpoints'][0]['port']))
+        print("export " + "TEST_SERVER_HOST=" + eps['publicEndpoints'][0]['ipAddress'])
+        print("export " + "TEST_SERVER_PORT=" + str(eps['publicEndpoints'][0]['port']))
         return raw_resp
 
     def upgrade_service(self, service_id, imageUuid, env_vars, ports):
@@ -60,8 +60,8 @@ class Rancher:
 
         resp = r.post(self.rancher_url + "/v1/services/{sid}/?action=finishupgrade".format(sid=service_id))
         eps = resp.json()['publicEndpoints'][0]
-        print("TEST_SERVER_HOST=" + eps['ipAddress'])
-        print("TEST_SERVER_PORT=" + str(eps['port']))
+        print("export " + "TEST_SERVER_HOST=" + eps['ipAddress'])
+        print("export " + "TEST_SERVER_PORT=" + str(eps['port']))
 
     def deploy(self, stack_name, service_name, env_vars, ports, imageUuid):
 
