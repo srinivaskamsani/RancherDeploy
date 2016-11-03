@@ -4,6 +4,35 @@ import json
 import sys
 import ast
 import os
+import optparse
+
+def evars_parser (evars):
+    '''
+    From: ['key1'='val1', 'key2'='val2']
+    To  : ['key1:val1', 'key2:val2']
+    '''
+    d = dict()
+
+    if evars:
+        for var in evars:
+            k,v = var.split('=')
+            d[k]=v
+    return d
+
+def ports_parser (ports):
+    '''
+    From: ['8080:9090', '9090'] 
+    To  : ['8080:9090/tcp', '9090/tcp'] 
+    '''
+    l = list()
+
+    if ports:
+        for port in ports:
+            l.append(port+ "/tcp")
+    return l
+
+def labels_parser(label):
+    return evars_parser(label)
 
 
 class Rancher:
@@ -31,11 +60,10 @@ class Rancher:
 
         return raw_resp
 
-    def create_new_service(self, stack_id, service_name, imageUuid, env_vars, ports):
-        raw_resp = r.post(self.rancher_url + '/v1/services', auth=(self.user, self.passw),
-                          data=json.dumps({"name": service_name, "environmentId": stack_id,
-                                           "launchConfig": {"imageUuid": imageUuid, "environment": env_vars,
-                                                            "startCount": 1, "ports": ports}, "startOnCreate": True})).json()
+    def create_new_service(self, stack_id, service_name,launch_config):
+
+        payload = json.dumps({"name": service_name, "environmentId": stack_id, "launchConfig": launch_config, "startOnCreate": True})
+        raw_resp = r.post(self.rancher_url + '/v1/services', auth=(self.user, self.passw), data=payload).json()
 
         if raw_resp.get('status') == 422:
             raise ValueError("Creating New service failed", raw_resp)
@@ -48,10 +76,12 @@ class Rancher:
         print("TEST_SERVER_PORT=" + str(eps['publicEndpoints'][0]['port']))
         return raw_resp
 
-    def upgrade_service(self, service_id, imageUuid, env_vars, ports):
+    def upgrade_service(self, service_id,launch_config):
 
-        raw_resp = r.post(self.rancher_url + "/v1/services/{sid}/?action=upgrade".format(sid=service_id), data=json.dumps(
-            {"inServiceStrategy": {"launchConfig": {"imageUuid": imageUuid, "environment": env_vars, "ports": ports}}, "toServiceStrategy": "null"})).json()
+        resource_path = "/v1/services/{sid}/?action=upgrade".format(sid=service_id)
+        payload = json.dumps({"inServiceStrategy": {"launchConfig": launch_config}, "toServiceStrategy": "null"})
+        raw_resp = r.post(self.rancher_url + resource_path, data=payload).json()
+        
         if raw_resp.get('status') == 422:
             raise ValueError("upgrade failed", raw_resp)
 
@@ -63,7 +93,7 @@ class Rancher:
         print("TEST_SERVER_HOST=" + eps['ipAddress'])
         print("TEST_SERVER_PORT=" + str(eps['port']))
 
-    def deploy(self, stack_name, service_name, env_vars, ports, imageUuid):
+    def deploy(self, stack_name, service_name, env_vars, ports, labels, imageUuid):
 
         stacks = list(filter(lambda x: x['name'] == stack_name, self.get_stack_name_id()))
 
@@ -73,25 +103,37 @@ class Rancher:
             stack_id = stacks[0]['id']
 
         services = list(filter(lambda x: x['name'] == service_name, self.get_services_in_stack(stack_id)))
+        launch_config = self.create_launch_config(imageUuid, env_vars, ports, labels)
         if not services:
-            service_id = self.create_new_service(stack_id, service_name, imageUuid, env_vars, ports)['id']
+            service_id = self.create_new_service(stack_id, service_name, launch_config)['id']
         else:
             service_id = services[0]['id']
-            self.upgrade_service(service_id, imageUuid, env_vars, ports)
+            self.upgrade_service(service_id, launch_config)
+
+    def create_launch_config(self, imageUuid, env_vars, ports, labels):
+        return { "imageUuid": imageUuid, 
+                 "environment": env_vars, 
+                 "ports": ports, 
+                 "labels" : labels, 
+                 "startCount": 1,
+                 "startOnCreate": True }
+
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 6:
-        print("Usage: ./rancher_deploy stack_name service_name env_vars ports imageUuid")
-        exit(1)
-    else:
-        stack_name = sys.argv[1]
-        service_name = sys.argv[2]
-        env_vars = ast.literal_eval(sys.argv[3])
-        ports = ast.literal_eval(sys.argv[4])
-        imageUuid = sys.argv[5]
-        rancher_url = os.environ['RANCHER_URL']
-        user = os.environ['RANCHER_USERNAME']
-        passw = os.environ['RANCHER_PASSWORD']
-        rancher = Rancher(rancher_url, user, passw)
-        rancher.deploy(stack_name, service_name, env_vars, ports, imageUuid)
+    parser = optparse.OptionParser()
+    parser.add_option("-e", "--env", help="Set environment variables", metavar="K=V", action="append")
+    parser.add_option("--image", help='Deploy the image', metavar="VALUE")
+    parser.add_option("--rstack", help='Rancher stack name', metavar="VALUE")
+    parser.add_option("--rservice", help='Rancher service name', metavar="VALUE")
+    parser.add_option("-p", "--ports", help="Publish a container's port(s) to the host (default [])", metavar="EXT:INT", action="append")
+    parser.add_option("-v", "--volume", help="Bind mount a volume (default [])", metavar="EXT:INT", action="append")
+    parser.add_option("-n", "--network", help='Connect a container to a network (default "default")', metavar="VALUE")
+    parser.add_option("-l", "--label", help=' Set meta data on a container (default [])', metavar="VALUE", action="append")
+    (options, args) = parser.parse_args()
+    rancher_url = os.environ['RANCHER_URL']
+    user = os.environ['RANCHER_USERNAME']
+    passw = os.environ['RANCHER_PASSWORD']
+    rancher = Rancher(rancher_url, user, passw)
+    rancher.deploy(options.rstack, options.rservice, evars_parser(options.env), ports_parser(options.ports), labels_parser(options.label), options.image)
+
