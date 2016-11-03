@@ -79,18 +79,16 @@ class Rancher:
         return raw_resp
 
     def upgrade_service(self, service_id, launch_config):
-
         resource_path = "/v1/services/{sid}/?action=upgrade".format(sid=service_id)
         payload = json.dumps({"inServiceStrategy": {"launchConfig": launch_config}, "toServiceStrategy": "null"})
-        raw_resp = r.post(self.rancher_url + resource_path, data=payload).json()
+        raw_resp = r.post(self.rancher_url + resource_path, data=payload, auth=(self.user, self.passw)).json()
 
         if raw_resp.get('status') == 422:
             raise ValueError("upgrade failed", raw_resp)
 
         while(self.get_service_status(service_id) != 'upgraded'):
             pass
-
-        resp = r.post(self.rancher_url + "/v1/services/{sid}/?action=finishupgrade".format(sid=service_id))
+        resp = r.post(self.rancher_url + "/v1/services/{sid}/?action=finishupgrade".format(sid=service_id), auth=(self.user, self.passw))
         eps = resp.json()['publicEndpoints'][0]
         print("TEST_SERVER_HOST=" + eps['ipAddress'])
         print("TEST_SERVER_PORT=" + str(eps['port']))
