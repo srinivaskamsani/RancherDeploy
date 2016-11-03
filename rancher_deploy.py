@@ -6,20 +6,21 @@ import ast
 import os
 import optparse
 
-def evars_parser (evars):
+
+def evars_parser(evars):
     '''
     From: ['key1'='val1', 'key2'='val2']
     To  : ['key1:val1', 'key2:val2']
     '''
     d = dict()
-
     if evars:
         for var in evars:
-            k,v = var.split('=')
-            d[k]=v
+            k, v = var.split('=', 1)
+            d[k] = v
     return d
 
-def ports_parser (ports):
+
+def ports_parser(ports):
     '''
     From: ['8080:9090', '9090'] 
     To  : ['8080:9090/tcp', '9090/tcp'] 
@@ -28,8 +29,9 @@ def ports_parser (ports):
 
     if ports:
         for port in ports:
-            l.append(port+ "/tcp")
+            l.append(port + "/tcp")
     return l
+
 
 def labels_parser(label):
     return evars_parser(label)
@@ -42,15 +44,15 @@ class Rancher:
         self.passw = passw
 
     def get_stack_name_id(self):
-        raw_resp = r.get(self.rancher_url + '/v1/environments').json()
+        raw_resp = r.get(self.rancher_url + '/v1/environments', auth=(self.user, self.passw)).json()
         return [{'name': x['name'], "id": x['id']} for x in raw_resp['data']]
 
     def get_services_in_stack(self, stack_id):
-        raw_resp = r.get(self.rancher_url + '/v1/environments/{id}/services'.format(id=stack_id)).json()
+        raw_resp = r.get(self.rancher_url + '/v1/environments/{id}/services'.format(id=stack_id), auth=(self.user, self.passw)).json()
         return [{'name': x['name'], "id": x['id']} for x in raw_resp['data']]
 
     def get_service_status(self, service_id):
-        raw_resp = raw_resp = r.get(self.rancher_url + "/v1/services/" + service_id).json()
+        raw_resp = raw_resp = r.get(self.rancher_url + "/v1/services/" + service_id, auth=(self.user, self.passw)).json()
         return raw_resp['state']
 
     def create_new_stack(self, stack_name):
@@ -60,7 +62,7 @@ class Rancher:
 
         return raw_resp
 
-    def create_new_service(self, stack_id, service_name,launch_config):
+    def create_new_service(self, stack_id, service_name, launch_config):
 
         payload = json.dumps({"name": service_name, "environmentId": stack_id, "launchConfig": launch_config, "startOnCreate": True})
         raw_resp = r.post(self.rancher_url + '/v1/services', auth=(self.user, self.passw), data=payload).json()
@@ -68,20 +70,20 @@ class Rancher:
         if raw_resp.get('status') == 422:
             raise ValueError("Creating New service failed", raw_resp)
 
-        while r.get(self.rancher_url + '/v1/services/' + raw_resp['id']).json()['state'] == 'activating':
+        while r.get(self.rancher_url + '/v1/services/' + raw_resp['id'], auth=(self.user, self.passw)).json()['state'] == 'activating':
             pass
 
-        eps = r.get(self.rancher_url + '/v1/services/' + raw_resp['id']).json()
+        eps = r.get(self.rancher_url + '/v1/services/' + raw_resp['id'], auth=(self.user, self.passw)).json()
         print("TEST_SERVER_HOST=" + eps['publicEndpoints'][0]['ipAddress'])
         print("TEST_SERVER_PORT=" + str(eps['publicEndpoints'][0]['port']))
         return raw_resp
 
-    def upgrade_service(self, service_id,launch_config):
+    def upgrade_service(self, service_id, launch_config):
 
         resource_path = "/v1/services/{sid}/?action=upgrade".format(sid=service_id)
         payload = json.dumps({"inServiceStrategy": {"launchConfig": launch_config}, "toServiceStrategy": "null"})
         raw_resp = r.post(self.rancher_url + resource_path, data=payload).json()
-        
+
         if raw_resp.get('status') == 422:
             raise ValueError("upgrade failed", raw_resp)
 
@@ -111,12 +113,12 @@ class Rancher:
             self.upgrade_service(service_id, launch_config)
 
     def create_launch_config(self, imageUuid, env_vars, ports, labels):
-        return { "imageUuid": imageUuid, 
-                 "environment": env_vars, 
-                 "ports": ports, 
-                 "labels" : labels, 
-                 "startCount": 1,
-                 "startOnCreate": True }
+        return {"imageUuid": imageUuid,
+                "environment": env_vars,
+                "ports": ports,
+                "labels": labels,
+                "startCount": 1,
+                "startOnCreate": True}
 
 
 if __name__ == '__main__':
@@ -136,4 +138,3 @@ if __name__ == '__main__':
     passw = os.environ['RANCHER_PASSWORD']
     rancher = Rancher(rancher_url, user, passw)
     rancher.deploy(options.rstack, options.rservice, evars_parser(options.env), ports_parser(options.ports), labels_parser(options.label), options.image)
-
