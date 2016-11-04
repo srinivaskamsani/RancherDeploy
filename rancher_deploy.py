@@ -70,7 +70,7 @@ class Rancher:
         if raw_resp.get('status') == 422:
             raise ValueError("Creating New service failed", raw_resp)
 
-        while r.get(self.rancher_url + '/v1/services/' + raw_resp['id'], auth=(self.user, self.passw)).json()['state'] == 'activating':
+        while r.get(self.rancher_url + '/v1/services/' + raw_resp['id'], auth=(self.user, self.passw)).json()['state'] == 'active':
             pass
 
         eps = r.get(self.rancher_url + '/v1/services/' + raw_resp['id'], auth=(self.user, self.passw)).json()
