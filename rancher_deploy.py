@@ -74,6 +74,7 @@ class Rancher:
             pass
 
         eps = r.get(self.rancher_url + '/v1/services/' + raw_resp['id'], auth=(self.user, self.passw)).json()
+        print(eps)
         print("TEST_SERVER_HOST=" + eps['publicEndpoints'][0]['ipAddress'])
         print("TEST_SERVER_PORT=" + str(eps['publicEndpoints'][0]['port']))
         return raw_resp
