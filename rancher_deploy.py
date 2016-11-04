@@ -71,11 +71,9 @@ class Rancher:
             raise ValueError("Creating New service failed", raw_resp)
 
         while r.get(self.rancher_url + '/v1/services/' + raw_resp['id'], auth=(self.user, self.passw)).json()['state'] != 'active':
-            print(r.get(self.rancher_url + '/v1/services/' + raw_resp['id'], auth=(self.user, self.passw)).json()['state'])
+            pass
 
         eps = r.get(self.rancher_url + '/v1/services/' + raw_resp['id'], auth=(self.user, self.passw)).json()
-        print(r.get(self.rancher_url + '/v1/services/' + raw_resp['id'], auth=(self.user, self.passw)).json()['state'])
-        print(eps)
         print("TEST_SERVER_HOST=" + eps['publicEndpoints'][0]['ipAddress'])
         print("TEST_SERVER_PORT=" + str(eps['publicEndpoints'][0]['port']))
         return raw_resp
