@@ -26,10 +26,12 @@ def ports_parser(ports):
     To  : ['8080:9090/tcp', '9090/tcp'] 
     '''
     l = list()
-
     if ports:
         for port in ports:
-            l.append(port + "/tcp")
+            if not ("/tcp" in port or "/udp" in port):
+                l.append(port + "/tcp")
+            else:
+                l.append(port)
     return l
 
 
@@ -54,6 +56,38 @@ class Rancher:
     def get_service_status(self, service_id):
         raw_resp = raw_resp = r.get(self.rancher_url + "/v1/services/" + service_id, auth=(self.user, self.passw)).json()
         return raw_resp['state']
+
+    def convert_hname_to_hid(self, hname):
+        '''
+        Return the hostid associated with the host name passed in, if not found, return false
+        :param hname: (String) The host name
+        '''
+
+        if not hname:
+            return False
+
+        hosts = r.get(self.rancher_url + '/v1/hosts', auth=(self.user, self.passw)).json()['data']
+        for host in hosts:
+            if host['hostname'].lower() == hname.lower():
+                return host['id']
+        return False
+
+    def convert_sname_to_sid(self, sname):
+        '''
+        Return the service Id associated with the service name passed in, if not found, return False
+        :param sname: (String) The service name
+        '''
+
+        if not sname:
+            return False
+
+        services = r.get(self.rancher_url + '/v1/services', auth=(self.user, self.passw)).json()['data']
+
+        for service in services:
+            if service['name'].lower() == sname.lower():
+                return service['id']
+
+        return False
 
     def create_new_stack(self, stack_name):
         raw_resp = r.post(self.rancher_url + '/v1/environments', auth=(self.user, self.passw), data={"name": stack_name}).json()
@@ -93,7 +127,12 @@ class Rancher:
         print("TEST_SERVER_HOST=" + eps['ipAddress'])
         print("TEST_SERVER_PORT=" + str(eps['port']))
 
-    def deploy(self, stack_name, service_name, env_vars, ports, labels, imageUuid):
+    def add_service_link(self, sid, slinks):
+
+        payload = json.dumps({"serviceLink": {"serviceId": slinks, "name": "kong-database"}})
+        r.post(self.rancher_url + '/v1/services/{ID}?action=addservicelink'.format(ID=sid), auth=(self.user, self.passw), data=payload)
+
+    def deploy(self, stack_name, service_name, env_vars, ports, labels, imageUuid, rhost, dataVolumes, slinks, networkMode):
 
         stacks = list(filter(lambda x: x['name'] == stack_name, self.get_stack_name_id()))
 
@@ -103,20 +142,48 @@ class Rancher:
             stack_id = stacks[0]['id']
 
         services = list(filter(lambda x: x['name'] == service_name, self.get_services_in_stack(stack_id)))
-        launch_config = self.create_launch_config(imageUuid, env_vars, ports, labels)
+        host_id = self.convert_hname_to_hid(rhost) if self.convert_hname_to_hid(rhost) else ''
+        service_link_id = self.convert_sname_to_sid(slinks) if self.convert_sname_to_sid(slinks) else ''
+        launch_config = self.create_launch_config(imageUuid, env_vars, ports, labels, host_id, dataVolumes, networkMode)
         if not services:
             service_id = self.create_new_service(stack_id, service_name, launch_config)['id']
         else:
             service_id = services[0]['id']
             self.upgrade_service(service_id, launch_config)
 
-    def create_launch_config(self, imageUuid, env_vars, ports, labels):
-        return {"imageUuid": imageUuid,
-                "environment": env_vars,
-                "ports": ports,
-                "labels": labels,
-                "startCount": 1,
-                "startOnCreate": True}
+        if slinks:
+            print("adding link")
+            services = list(filter(lambda x: x['name'] == service_name, self.get_services_in_stack(stack_id)))
+            self.add_service_link(services[0]['id'], service_link_id)
+
+    def create_launch_config(self, imageUuid, env_vars, ports, labels, rhost, dataVolumes, networkMode):
+        lc = dict()
+
+        if imageUuid:
+            lc.update({"imageUuid": imageUuid})
+
+        if env_vars:
+            lc.update({"environment": env_vars})
+
+        if ports:
+            lc.update({"ports": ports})
+
+        if labels:
+            lc.update({"labels": labels})
+
+        if rhost:
+            lc.update({"requestedHostId": rhost})
+
+        if dataVolumes:
+            lc.update({"dataVolumes": dataVolumes})
+
+        if networkMode:
+            lc.update({"networkMode": networkMode})
+
+        lc["startCount"] = 1
+        lc["startOnCreate"] = True
+
+        return lc
 
 
 if __name__ == '__main__':
@@ -126,6 +193,8 @@ if __name__ == '__main__':
     parser.add_option("--image", help='Deploy the image', metavar="VALUE")
     parser.add_option("--rstack", help='Rancher stack name', metavar="VALUE")
     parser.add_option("--rservice", help='Rancher service name', metavar="VALUE")
+    parser.add_option("--link", help='Service links', metavar="VALUE")
+    parser.add_option("--rhost", help='Rancher host to run serivce on', metavar="VALUE")
     parser.add_option("-p", "--ports", help="Publish a container's port(s) to the host (default [])", metavar="EXT:INT", action="append")
     parser.add_option("-v", "--volume", help="Bind mount a volume (default [])", metavar="EXT:INT", action="append")
     parser.add_option("-n", "--network", help='Connect a container to a network (default "default")', metavar="VALUE")
@@ -135,4 +204,13 @@ if __name__ == '__main__':
     user = os.environ['RANCHER_USERNAME']
     passw = os.environ['RANCHER_PASSWORD']
     rancher = Rancher(rancher_url, user, passw)
-    rancher.deploy(options.rstack, options.rservice, evars_parser(options.env), ports_parser(options.ports), labels_parser(options.label), options.image)
+    rancher.deploy(options.rstack,
+                   options.rservice,
+                   evars_parser(options.env),
+                   ports_parser(options.ports),
+                   labels_parser(options.label),
+                   options.image,
+                   options.rhost,
+                   options.volume,
+                   options.link, 
+                   options.network)
