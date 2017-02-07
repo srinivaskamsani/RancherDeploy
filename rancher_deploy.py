@@ -123,9 +123,9 @@ class Rancher:
         while(self.get_service_status(service_id) != 'upgraded'):
             pass
         resp = r.post(self.rancher_url + "/v1/services/{sid}/?action=finishupgrade".format(sid=service_id), auth=(self.user, self.passw))
-        eps = resp.json()['publicEndpoints'][0]
-        print("TEST_SERVER_HOST=" + eps['ipAddress'])
-        print("TEST_SERVER_PORT=" + str(eps['port']))
+        #eps = resp.json()['publicEndpoints'][0]
+        #print("TEST_SERVER_HOST=" + eps['ipAddress'])
+        #print("TEST_SERVER_PORT=" + str(eps['port']))
 
     def add_service_link(self, sid, slinks):
 
