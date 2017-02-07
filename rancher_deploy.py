@@ -107,9 +107,9 @@ class Rancher:
         while r.get(self.rancher_url + '/v1/services/' + raw_resp['id'], auth=(self.user, self.passw)).json()['state'] != 'active':
             pass
 
-        eps = r.get(self.rancher_url + '/v1/services/' + raw_resp['id'], auth=(self.user, self.passw)).json()
-        print("TEST_SERVER_HOST=" + eps['publicEndpoints'][0]['ipAddress'])
-        print("TEST_SERVER_PORT=" + str(eps['publicEndpoints'][0]['port']))
+        #eps = r.get(self.rancher_url + '/v1/services/' + raw_resp['id'], auth=(self.user, self.passw)).json()
+        #print("TEST_SERVER_HOST=" + eps['publicEndpoints'][0]['ipAddress'])
+        #print("TEST_SERVER_PORT=" + str(eps['publicEndpoints'][0]['port']))
         return raw_resp
 
     def upgrade_service(self, service_id, launch_config):
