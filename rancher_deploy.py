@@ -96,9 +96,9 @@ class Rancher:
 
         return raw_resp
 
-    def create_new_service(self, stack_id, service_name, launch_config):
+    def create_new_service(self, stack_id, service_name, launch_config, scale):
 
-        payload = json.dumps({"name": service_name, "environmentId": stack_id, "launchConfig": launch_config, "startOnCreate": True})
+        payload = json.dumps({"name": service_name, "environmentId": stack_id, "launchConfig": launch_config, "startOnCreate": True, "scale": scale})
         raw_resp = r.post(self.rancher_url + '/v1/services', auth=(self.user, self.passw), data=payload).json()
 
         if raw_resp.get('status') == 422:
@@ -107,14 +107,11 @@ class Rancher:
         while r.get(self.rancher_url + '/v1/services/' + raw_resp['id'], auth=(self.user, self.passw)).json()['state'] != 'active':
             pass
 
-        #eps = r.get(self.rancher_url + '/v1/services/' + raw_resp['id'], auth=(self.user, self.passw)).json()
-        #print("TEST_SERVER_HOST=" + eps['publicEndpoints'][0]['ipAddress'])
-        #print("TEST_SERVER_PORT=" + str(eps['publicEndpoints'][0]['port']))
         return raw_resp
 
-    def upgrade_service(self, service_id, launch_config):
+    def upgrade_service(self, service_id, launch_config, scale):
         resource_path = "/v1/services/{sid}/?action=upgrade".format(sid=service_id)
-        payload = json.dumps({"inServiceStrategy": {"launchConfig": launch_config}, "toServiceStrategy": "null"})
+        payload = json.dumps({"inServiceStrategy": {"launchConfig": launch_config, "scale": scale}, "toServiceStrategy": "null"})
         raw_resp = r.post(self.rancher_url + resource_path, data=payload, auth=(self.user, self.passw)).json()
 
         if raw_resp.get('status') == 422:
@@ -122,17 +119,15 @@ class Rancher:
 
         while(self.get_service_status(service_id) != 'upgraded'):
             pass
+
         resp = r.post(self.rancher_url + "/v1/services/{sid}/?action=finishupgrade".format(sid=service_id), auth=(self.user, self.passw))
-        #eps = resp.json()['publicEndpoints'][0]
-        #print("TEST_SERVER_HOST=" + eps['ipAddress'])
-        #print("TEST_SERVER_PORT=" + str(eps['port']))
 
     def add_service_link(self, sid, slinks):
 
         payload = json.dumps({"serviceLink": {"serviceId": slinks, "name": "kong-database"}})
         r.post(self.rancher_url + '/v1/services/{ID}?action=addservicelink'.format(ID=sid), auth=(self.user, self.passw), data=payload)
 
-    def deploy(self, stack_name, service_name, env_vars, ports, labels, imageUuid, rhost, dataVolumes, slinks, networkMode):
+    def deploy(self, stack_name, service_name, env_vars, ports, labels, imageUuid, rhost, dataVolumes, slinks, networkMode, scale):
 
         stacks = list(filter(lambda x: x['name'] == stack_name, self.get_stack_name_id()))
 
@@ -146,10 +141,10 @@ class Rancher:
         service_link_id = self.convert_sname_to_sid(slinks) if self.convert_sname_to_sid(slinks) else ''
         launch_config = self.create_launch_config(imageUuid, env_vars, ports, labels, host_id, dataVolumes, networkMode)
         if not services:
-            service_id = self.create_new_service(stack_id, service_name, launch_config)['id']
+            service_id = self.create_new_service(stack_id, service_name, launch_config, scale)['id']
         else:
             service_id = services[0]['id']
-            self.upgrade_service(service_id, launch_config)
+            self.upgrade_service(service_id, launch_config, scale)
 
         if slinks:
             print("adding link")
@@ -193,6 +188,7 @@ if __name__ == '__main__':
     parser.add_option("--image", help='Deploy the image', metavar="VALUE")
     parser.add_option("--rstack", help='Rancher stack name', metavar="VALUE")
     parser.add_option("--rservice", help='Rancher service name', metavar="VALUE")
+    parser.add_option("--scale", help='Number of containers to deploy', metavar="VALUE")
     parser.add_option("--link", help='Service links', metavar="VALUE")
     parser.add_option("--rhost", help='Rancher host to run serivce on', metavar="VALUE")
     parser.add_option("-p", "--ports", help="Publish a container's port(s) to the host (default [])", metavar="EXT:INT", action="append")
@@ -212,5 +208,6 @@ if __name__ == '__main__':
                    options.image,
                    options.rhost,
                    options.volume,
-                   options.link, 
-                   options.network)
+                   options.link,
+                   options.network,
+                   options.scale)
