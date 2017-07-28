@@ -23,6 +23,7 @@ class Stack:
             if service['type'] == 'service':
                 s = Service(service['links']['self'], self.rancher_auth)
                 services_accum.append(s)
+
         return services_accum
 
     def create_new_service(self, service):
