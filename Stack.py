@@ -16,12 +16,14 @@ class Stack:
     def services(self):
         services_url = self.props['links']['services']
         services_prop = r.get(services_url, auth=self.rancher_auth).json()
-        services = self.props['data']
+        services = services_prop['data']
 
         services_accum =[]
         for service in services:
-            s = Service(service['links']['self'], self.rancher_auth)
-            services_accum.append(s)
+            if service['type'] == 'service':
+                s = Service(service['links']['self'], self.rancher_auth)
+                services_accum.append(s)
+
         return services_accum
 
     def create_new_service(self, service):
