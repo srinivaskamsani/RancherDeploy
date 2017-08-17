@@ -1,7 +1,7 @@
 import requests as r
 from Service import Service
 import json
-
+from LoadBalancer import LoadBalancer
 class Stack:
     def __init__(self, stack_url, auth):
         self.stack_url = stack_url
@@ -23,6 +23,10 @@ class Stack:
             if service['type'] == 'service':
                 s = Service(service['links']['self'], self.rancher_auth)
                 services_accum.append(s)
+            elif service['type'] == 'loadBalancerService':
+                s = LoadBalancer(service['links']['self'], self.rancher_auth)
+                services_accum.append(s)
+                
 
         return services_accum
 
@@ -35,7 +39,15 @@ class Stack:
         payload['scalePolicy'] = ""
         payload['lbConfig'] = ""
         resp = r.post(create_service_url, data=json.dumps(payload), auth=self.rancher_auth)
-        return resp
+
+        if resp.status_code != 201:
+            raise ValueError("Creatnig a new service failed:", resp.json())
+
+        return Service(resp.json()['links']['self'], self.rancher_auth)
+
     def __repr__(self):
         return self.name
+
+    def __eq__(self, other):
+        return self.name == other
         
