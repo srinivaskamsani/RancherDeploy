@@ -1,6 +1,6 @@
 import requests as r
-from  Stack import Stack
-from Host import Host
+from  RancherDeploy.Stack import Stack
+from RancherDeploy.Host import Host
 from urllib.parse import urljoin
 
 class Rancher:

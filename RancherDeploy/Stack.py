@@ -1,7 +1,7 @@
 import requests as r
-from Service import Service
+from RancherDeploy.Service import Service
 import json
-from LoadBalancer import LoadBalancer
+from RancherDeploy.LoadBalancer import LoadBalancer
 class Stack:
     def __init__(self, stack_url, auth):
         self.stack_url = stack_url

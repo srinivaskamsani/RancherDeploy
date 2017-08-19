@@ -1,8 +1,8 @@
 import click
-from Rancher import Rancher
+from RancherDeploy.Rancher import Rancher
 from collections import namedtuple
 import logging
-from Service import Service
+from RancherDeploy.Service import Service
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', ''])
 
 def convert_tuple_to_dict(variables):
@@ -26,10 +26,10 @@ def convert_ports(ports):
     return [re.sub('([0-9])$', '\g<1>/tcp', p) for p in ports]
 
 @click.group()
-def cli():
+def main():
     pass
 
-@cli.command()
+@main.command()
 @click.option('-u', '--username', help='Rancher API Username', required=True)
 @click.option('--password', help='Rancher API Password', required=True)
 @click.option('-p','--publish' , help='Publish a container’s port(s) to the host', required=False, multiple=True)
@@ -68,4 +68,4 @@ def deploy(**kwargs):
         s.upgrade()
         
 if __name__ == '__main__':
-    cli()
+    main()

@@ -1,5 +1,5 @@
 import requests as r
-from LoadBalancer import LoadBalancer
+from RancherDeploy.LoadBalancer import LoadBalancer
 import json
 
 class Service:
