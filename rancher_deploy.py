@@ -103,7 +103,7 @@ class Rancher:
 
         if raw_resp.get('status') == 422:
             raise ValueError("Creating New service failed", raw_resp)
-
+        import pdb;pdb.set_trace()
         while r.get(self.rancher_url + '/v1/services/' + raw_resp['id'], auth=(self.user, self.passw)).json()['state'] != 'active':
             pass
 
@@ -130,7 +130,7 @@ class Rancher:
     def deploy(self, stack_name, service_name, env_vars, ports, labels, imageUuid, rhost, dataVolumes, slinks, networkMode, scale):
 
         stacks = list(filter(lambda x: x['name'] == stack_name, self.get_stack_name_id()))
-
+        import pdb;pdb.set_trace()
         if not stacks:
             stack_id = self.create_new_stack(stack_name)['id']
         else:
