@@ -1,4 +1,6 @@
 import requests as r
+from LoadBalancer import LoadBalancer
+import json
 
 class Service:
 
@@ -6,6 +8,8 @@ class Service:
         self.service_url = service_url
         self.rancher_auth = auth
         self.name = None
+        self.id = None
+        self.stack_id = None
         self.image_name = None
         self.scale = None
         self.props = None
@@ -13,20 +17,27 @@ class Service:
         self.env_vars = {}
         self.labels = {}
         self.network_mode = 'managed'
-        self.log_driver = 'none'
+        self.log_driver = ''
         self.initilize()
 
     def initilize(self):
         if self.service_url:
             self.props = r.get(self.service_url, auth=self.rancher_auth).json()
             self.name = self.props['name']
+            self.id = self.props['id']
+            self.stack_id = self.props['stackId']
             self.image_name = self.props['launchConfig']['imageUuid']
             self.scale = self.props['scale']
             self.ports = self.props['launchConfig']['ports']
             self.network_mode = self.props['launchConfig']['networkMode']
             self.env_vars = self.props['launchConfig'].get('environment', {})
             self.labels = self.props['launchConfig']['labels']
-        
+
+    @property
+    def status(self):
+        props = r.get(self.service_url, auth=self.rancher_auth).json()
+        return props['state']
+    
     def expose_port(self, internal, external=None):
         if not ("/tcp" in internal or "/udp" in internal):
             internal = internal + "/tcp"
@@ -76,7 +87,33 @@ class Service:
                 'publicEndpoints': [],
                 'assignServiceIpAddress': False,
                 'startOnCreate': True}
+    @property
+    def upgrade_url(self):
+        props = r.get(self.service_url, auth=self.rancher_auth).json()
+        return props['actions']['upgrade']
     
+    def upgrade(self):
+        lc = self.update_launch_config()
+        payload = json.dumps({"inServiceStrategy": {"launchConfig": lc, "scale": self.scale}, "toServiceStrategy": None})
+        resp = r.post(self.upgrade_url, data=payload, auth=self.rancher_auth)
+
+        if resp.status_code is not 202:
+            raise ValueError("upgrade failed", resp.json())
+
+        while self.status != 'upgraded':
+            pass
+        
+    def create_load_balancer(self, internal_port, external_port):
+        lb = LoadBalancer(self.rancher_auth)
+        lb.name = self.name + "LB"
+        lb.service_id = self.id
+        lb.stack_id = self.stack_id
+        lb.service_port = internal_port
+        lb.lb_ports = ["9213:9213/tcp"]
+
     def __repr__(self):
         return self.name
+
+    def __eq__(self, other):
+        return self.name == other
         

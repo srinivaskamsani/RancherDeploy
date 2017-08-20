@@ -1,5 +1,6 @@
 import requests as r
 from  Stack import Stack
+from Host import Host
 from urllib.parse import urljoin
 
 class Rancher:
@@ -8,11 +9,13 @@ class Rancher:
         self.rancher_auth = rancher_auth
         self.api_verison = api_verison
         self.api_endpoint = urljoin(self.rancher_url, self.api_verison)
+        self.rancher_props = r.get(self.api_endpoint, auth=self.rancher_auth).json()
 
     @property
     def stacks(self):
-        rancher_props = r.get(self.api_endpoint, auth=self.rancher_auth).json()
-        stacks_url = rancher_props['links']['stacks']
+        projects_url = self.rancher_props['links']['projects']
+        projects = r.get(projects_url, auth=self.rancher_auth).json()
+        stacks_url = projects['data'][0]['links']['stacks']
         stacks = r.get(stacks_url, auth=self.rancher_auth).json()['data']
 
         stacks_accum = []
@@ -21,9 +24,23 @@ class Rancher:
             stacks_accum.append(s)
         return stacks_accum
 
+    @property
+    def hosts(self):
+        host_url = self.rancher_props['links']['hosts']
+        hosts = r.get(host_url, auth=self.rancher_auth).json()['data']
+
+        hosts_accum = []
+        for host in hosts:
+            h = Host(host['links']['self'], self.rancher_auth)
+            hosts_accum.append(h)
+
+        return hosts_accum
+            
+        
     def create_new_stack(self, stack_name):
-        rancher_props = r.get(self.api_endpoint, auth=self.rancher_auth).json()
-        stacks_url = rancher_props['links']['stacks']
+        projects_url = self.rancher_props['links']['projects']
+        projects = r.get(projects_url, auth=self.rancher_auth).json()
+        stacks_url = projects['data'][0]['links']['stacks']
         stacks = r.get(stacks_url, auth=self.rancher_auth).json()
         create_endpoint = stacks['createTypes']['stack']
         new_stack_request = self.__new_stack_request(stack_name)
