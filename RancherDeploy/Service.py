@@ -12,7 +12,6 @@ class Service:
         self.stack_id = None
         self.image_name = None
         self.scale = None
-        self.props = None
         self.ports = []
         self.env_vars = {}
         self.labels = {}
@@ -20,18 +19,23 @@ class Service:
         self.log_driver = ''
         self.initilize()
 
+
+    @property
+    def props(self):
+        return r.get(self.service_url, auth=self.rancher_auth).json()
+    
     def initilize(self):
         if self.service_url:
-            self.props = r.get(self.service_url, auth=self.rancher_auth).json()
-            self.name = self.props['name']
-            self.id = self.props['id']
-            self.stack_id = self.props['stackId']
-            self.image_name = self.props['launchConfig']['imageUuid']
-            self.scale = self.props['scale']
-            self.ports = self.props['launchConfig']['ports']
-            self.network_mode = self.props['launchConfig']['networkMode']
-            self.env_vars = self.props['launchConfig'].get('environment', {})
-            self.labels = self.props['launchConfig']['labels']
+            cached_props = self.props 
+            self.name = cached_props['name']
+            self.id = cached_props['id']
+            self.stack_id = cached_props['stackId']
+            self.image_name = cached_props['launchConfig']['imageUuid']
+            self.scale = cached_props['scale']
+            self.ports = cached_props['launchConfig']['ports']
+            self.network_mode = cached_props['launchConfig']['networkMode']
+            self.env_vars = cached_props['launchConfig'].get('environment', {})
+            self.labels = cached_props['launchConfig']['labels']
 
     @property
     def status(self):
@@ -87,21 +91,27 @@ class Service:
                 'publicEndpoints': [],
                 'assignServiceIpAddress': False,
                 'startOnCreate': True}
-    @property
-    def upgrade_url(self):
-        props = r.get(self.service_url, auth=self.rancher_auth).json()
-        return props['actions']['upgrade']
+
+    def finish_upgrade(self):
+        finish_upgrade_url = self.props['actions']['finishupgrade']
+        resp = r.post(finish_upgrade_url, auth=self.rancher_auth)
+
+        if resp.status_code is not 202:
+            raise ValueError("Could not finish upgrade", resp.json())
     
     def upgrade(self):
+        upgrade_url = self.props['actions']['upgrade']
         lc = self.update_launch_config()
         payload = json.dumps({"inServiceStrategy": {"launchConfig": lc, "scale": self.scale}, "toServiceStrategy": None})
-        resp = r.post(self.upgrade_url, data=payload, auth=self.rancher_auth)
+        resp = r.post(upgrade_url, data=payload, auth=self.rancher_auth)
 
         if resp.status_code is not 202:
             raise ValueError("upgrade failed", resp.json())
 
         while self.status != 'upgraded':
             pass
+
+        self.finish_upgrade()
         
     def create_load_balancer(self, internal_port, external_port):
         lb = LoadBalancer(self.rancher_auth)

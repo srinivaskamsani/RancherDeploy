@@ -2,6 +2,7 @@ import click
 from RancherDeploy.Rancher import Rancher
 from collections import namedtuple
 import logging
+import re
 from RancherDeploy.Service import Service
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', ''])
 
