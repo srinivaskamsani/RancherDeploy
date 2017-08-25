@@ -1,8 +1,9 @@
 import click
-from Rancher import Rancher
+from RancherDeploy.Rancher import Rancher
 from collections import namedtuple
 import logging
-from Service import Service
+import re
+from RancherDeploy.Service import Service
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', ''])
 
 def convert_tuple_to_dict(variables):
@@ -10,12 +11,7 @@ def convert_tuple_to_dict(variables):
     From: ('key1'='val1', 'key2'='val2')
     To  : {'key1:val1', 'key2:val2'}
     '''
-    d = dict()
-    if variables:
-        for var in variables:
-            k,v = var.split('=',1)
-            d[k] = v
-    return d
+    return {k:v for (k, v) in [tuple(var.split('=',1)) for var in variables]}
 
 def convert(dictionary):
     '''
@@ -28,23 +24,16 @@ def convert_ports(ports):
     From: ('8080:9090', '9090')
     To  : ['8080:9090/tcp', '9090/tcp']
     '''
-    l = list()
-    if ports:
-        for port in ports:
-            if not ("/tcp" in port or "/udp" in port):
-                l.append(port + "/tcp")
-            else:
-                l.append(port)
-    return l
+    return [re.sub('([0-9])$', '\g<1>/tcp', p) for p in ports]
 
 @click.group()
-def cli():
+def main():
     pass
 
-@cli.command()
+@main.command()
 @click.option('-u', '--username', help='Rancher API Username', required=True)
 @click.option('--password', help='Rancher API Password', required=True)
-@click.option('-p','--publish' , help='Give extended privileges to this container', required=False, multiple=True)
+@click.option('-p','--publish' , help='Publish a container’s port(s) to the host', required=False, multiple=True)
 @click.option('-h', '--host', help='Rancher Server URL', required=True)
 @click.option('--api_version', help='Rancher API version', required=True)
 @click.option('--rstack', help='Rancher Stack name', required=True)
@@ -80,4 +69,4 @@ def deploy(**kwargs):
         s.upgrade()
         
 if __name__ == '__main__':
-    cli()
+    main()
