@@ -63,6 +63,25 @@ For the deploy command
 | --image        | image name                                | yes      |
 | -e, --env      | Set environment variables                 | No       |
 
+Example:
+
+```
+RancherDeploy deploy \
+-u $RANCHER_USER \
+--password $RANCHER_PASS \
+-h RANCHER_HOST \
+--api_version v2-beta \
+--rstack DEV-ENV \
+--rservice d-convertproductid-gd \
+-e TIMBRE_LEVEL=:warn \
+-e CONVERT_PRODUCT_ID_DB_SERVICE_NAME=VALUE \
+-e CONVERT_PRODUCT_ID_DB_SCHEMA=VALUE \
+-l GATEWAY_URI=/ConvertProductId \
+-l GATEWAY_VISIBLE=True \
+-l ENVIRONMENT=DEV \
+--image docker:docker-registry.deluxe.com:5000/convertproductid:latest
+```
+
 For the setuplb command
 
 | ARG              | Description                                                  | Required |
@@ -77,6 +96,22 @@ For the setuplb command
 | --lb_source_port | Port being exposed by the LB                                 | Yes      |
 | --lb_target_port | Port inside the container of the service being load balanced | Yes      |
 
+Example :
+
+```
+RancherDeploy setuplb \
+-u $RANCHER_USER \
+--password $RANCHER_PASS \
+-h $RANCHER_HOST \
+--api_version v2-beta \
+--rstack DEV-ENV \
+--rservice d-convertproductid-gd  \
+--lb_source_port 9833 \
+--lb_target_port 8080 \
+-l "GATEWAY_VISIBLE=True" \
+-l GATEWAY_URI=/ConvertProductId \
+-l ENVIRONMENT=DEV
+```
 ## Troubleshooting
 
 
