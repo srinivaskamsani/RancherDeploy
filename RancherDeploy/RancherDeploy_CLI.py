@@ -6,6 +6,12 @@ import re
 from RancherDeploy.Service import Service
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', ''])
 
+def get_item_from_list(item, lst):
+    for l in lst:
+        if item == l:
+            return l
+    return None
+        
 def convert_tuple_to_dict(variables):
     '''
     From: ('key1'='val1', 'key2'='val2')
@@ -50,7 +56,7 @@ def deploy(**kwargs):
         logging.info("Creating new stack for %s", configs.rstack)
         rancher.create_new_stack(configs.rstack)
 
-    stack = rancher.stacks[rancher.stacks.index(configs.rstack)] ## Arun Lazy. Change this.
+    stack = get_item_from_list(configs.rstack, rancher.stacks)
     
     s = Service(None, rancher_auth)
     s.name = configs.rservice
@@ -64,9 +70,39 @@ def deploy(**kwargs):
     if configs.rservice not in stack.services:
         new_service = stack.create_new_service(s)
     else:
-        target_service = stack.services[stack.services.index(configs.rservice)] ## Arun Lazy. Change this.
+        target_service = get_item_from_list(configs.rservice, stack.services)
         s.service_url = target_service.service_url
         s.upgrade()
+
+@main.command()
+@click.option('-u', '--username', help='Rancher API Username', required=True)
+@click.option('--password', help='Rancher API Password', required=True)
+@click.option('-h', '--host', help='Rancher Server URL', required=True)
+@click.option('--api_version', help='Rancher API version', required=True)
+@click.option('--rstack', help='Rancher Stack name', required=True)
+@click.option('--rservice', help='Rancher Service name of service to be load balanced', required=True)
+@click.option('--lb_source_port', help='Port being exposed by the LB', required=True)
+@click.option('--lb_target_port', help=' port inside the container of service being load balanced', required=True)
+@click.option('-l', '-label', help='Set meta data on a container', required=False, multiple=True)
+def SetUpLB(**kwargs):
+    configs = convert(kwargs)
+    rancher_auth = (configs.username,configs.password)
+    rancher = Rancher(configs.host, rancher_auth, configs.api_version)
+    lb_name = configs.rservice + "-LB"
+    if configs.rstack not in rancher.stacks:
+        raise ValueError("Stack does not exit. Please create it first")
+
+    stack = get_item_from_list(configs.rstack, rancher.stacks)
+    services = stack.services
+    if configs.rservice not in services:
+        raise ValueError("Can't create a LB for a service does not exist. Please check.")
+
+    if lb_name in services:
+        target_lb = get_item_from_list(lb_name, services)
+        target_lb.remove()
         
+    target_service = get_item_from_list(configs.rservice, services)
+    target_service.create_load_balancer(configs.lb_source_port, configs.lb_target_port, convert_tuple_to_dict(configs.label))
+    
 if __name__ == '__main__':
     main()
