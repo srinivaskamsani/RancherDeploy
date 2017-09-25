@@ -32,10 +32,10 @@ class Service:
             self.stack_id = cached_props['stackId']
             self.image_name = cached_props['launchConfig']['imageUuid']
             self.scale = cached_props['scale']
-            self.ports = cached_props['launchConfig']['ports']
+            self.ports = cached_props['launchConfig'].get('ports',[])
             self.network_mode = cached_props['launchConfig']['networkMode']
             self.env_vars = cached_props['launchConfig'].get('environment', {})
-            self.labels = cached_props['launchConfig']['labels']
+            self.labels = cached_props['launchConfig'].get('labels', {})
 
     @property
     def status(self):
