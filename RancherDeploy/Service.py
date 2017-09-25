@@ -113,14 +113,29 @@ class Service:
 
         self.finish_upgrade()
         
-    def create_load_balancer(self, internal_port, external_port):
-        lb = LoadBalancer(self.rancher_auth)
-        lb.name = self.name + "LB"
+    def create_load_balancer(self, source_port, target_port, labels={}):
+        '''
+        source port is the port exposed by the load balancer
+        target port is the port inside the container of service being 
+        load balanced
+        '''
+        lb = LoadBalancer(None, self.rancher_auth)
+        lb.name = self.name + "-LB"
         lb.service_id = self.id
         lb.stack_id = self.stack_id
-        lb.service_port = internal_port
-        lb.lb_ports = ["9213:9213/tcp"]
+        lb.source_port = source_port
+        lb.target_port = target_port
+        lb.labels = labels
+        create_new_request = lb.update_lb_request()
 
+        services_link = r.get(self.props['links']['stack'], auth=self.rancher_auth).json()['links']['services']
+        create_lb_link = r.get(services_link, auth=self.rancher_auth).json()['createTypes']['loadBalancerService']
+
+        resp = r.post(create_lb_link, auth=self.rancher_auth, json=create_new_request)
+
+        if resp.status_code != 201:
+            raise ValueError("Could not create LB :", resp.json())
+        
     def __repr__(self):
         return self.name
 
