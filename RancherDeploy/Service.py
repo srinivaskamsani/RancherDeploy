@@ -135,6 +135,13 @@ class Service:
 
         if resp.status_code != 201:
             raise ValueError("Could not create LB :", resp.json())
+
+    def remove(self):
+        remove_url = self.props['actions']['remove']
+        resp = r.post(remove_url, auth=self.rancher_auth)
+
+        if resp.status_code != 202:
+            raise ValueError("Removing Service failed:", resp.json())
         
     def __repr__(self):
         return self.name

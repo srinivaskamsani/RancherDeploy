@@ -2,6 +2,8 @@ import requests as r
 from  RancherDeploy.Stack import Stack
 from RancherDeploy.Host import Host
 from urllib.parse import urljoin
+import logging
+import sys
 
 class Rancher:
     def __init__(self, rancher_url, rancher_auth, api_verison):
