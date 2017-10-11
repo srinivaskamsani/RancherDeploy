@@ -60,6 +60,38 @@ def test_create_new_service():
     actual_service.remove()
     test_stacks[0].remove()
 
-
-
 test_create_new_service()
+
+def test_upgrade_service():
+    rancher = Rancher(rancher_url, (user, password), api_version)
+    new_stack_name = "RancherDeployTest"
+    
+    s = Service(None, (user, password))
+    s.name = 'RancherDeployTest'
+    s.image_name = 'tutum/hello-world'
+    s.scale = 1
+    s.env_vars = {'var1': 'val1'}
+    s.labels = {'label1' : 'val2'}
+    s.ports = ['80/tcp']
+
+    rancher.create_new_stack(s)
+    test_stacks = list(filter(lambda x: x=="RancherDeployTest", rancher.stacks))
+    test_stacks[0].create_new_service(s)
+
+    time.sleep(10)
+    test_services = list(filter(lambda x: x=="RancherDeployTest",test_stacks[0].services))
+
+    actual_service = test_services[0]
+    actual_service.env_vars = {'var2':'val2'}
+    actual_service.upgrade()
+    
+    assert actual_service.name == s.name
+    assert actual_service.image_name == s.image_name
+    assert actual_service.scale == s.scale
+    assert actual_service.env_vars == {'var2' : 'val2'}
+    assert actual_service.labels == s.labels
+    
+    actual_service.remove()
+    test_stacks[0].remove()
+
+test_upgrade_service()
