@@ -95,3 +95,35 @@ def test_upgrade_service():
     test_stacks[0].remove()
 
 test_upgrade_service()
+
+def test_lb_deployment():
+    rancher = Rancher(rancher_url, (user, password), api_version)
+    new_stack_name = "RancherDeployTest"
+    
+    s = Service(None, (user, password))
+    s.name = 'RancherDeployTest'
+    s.image_name = 'tutum/hello-world'
+    s.scale = 1
+    s.env_vars = {'var1': 'val1'}
+    s.labels = {'label1' : 'val2'}
+    s.ports = ['80/tcp']
+
+    rancher.create_new_stack(s)
+    test_stacks = list(filter(lambda x: x=="RancherDeployTest", rancher.stacks))
+    test_stacks[0].create_new_service(s)
+
+    time.sleep(10)
+    test_services = list(filter(lambda x: x=="RancherDeployTest",test_stacks[0].services))
+
+    actual_service = test_services[0]
+
+    actual_service.create_load_balancer(54212,80)
+
+    lb_name = actual_service.name + "-LB"
+
+    assert lb_name in test_stacks[0].services
+    
+    actual_service.remove()
+    test_stacks[0].remove()
+
+test_lb_deployment()
