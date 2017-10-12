@@ -47,6 +47,9 @@ def main():
 @click.option('--image', help='image name', required=True)
 @click.option('-e', '--env', help='Set environment variables', required=False, multiple=True)
 @click.option('-l', '-label', help='Set meta data on a container', required=False, multiple=True)
+@click.option('--healthcheck_port', help='Internal container port to health check', required=False)
+@click.option('--healthcheck_method', help='GET/PUT/POST/HEAD etc. method to use for healthcheck', required=False)
+@click.option('--healthcheck_path', help='HTTP path for health check', required=False)
 def deploy(**kwargs):
     configs = convert(kwargs)
     rancher_auth = (configs.username,configs.password)
@@ -66,7 +69,11 @@ def deploy(**kwargs):
     s.labels = convert_tuple_to_dict(configs.label)
     s.ports = convert_ports(configs.publish)
 
-    
+    if all([configs.healthcheck_port, configs.healthcheck_method,
+                      configs.healthcheck_path]):
+        
+        s.add_healthcheck(configs.healthcheck_port, configs.healthcheck_method,
+                          configs.healthcheck_path)
     if configs.rservice not in stack.services:
         new_service = stack.create_new_service(s)
     else:
@@ -103,6 +110,7 @@ def SetUpLB(**kwargs):
         
     target_service = get_item_from_list(configs.rservice, services)
     target_service.create_load_balancer(configs.lb_source_port, configs.lb_target_port, convert_tuple_to_dict(configs.label))
-    
+
+
 if __name__ == '__main__':
     main()

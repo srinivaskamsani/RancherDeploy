@@ -15,6 +15,7 @@ class Service:
         self.ports = []
         self.env_vars = {}
         self.labels = {}
+        self.healthcheck = None
         self.network_mode = 'managed'
         self.log_driver = ''
         self.initilize()
@@ -75,6 +76,7 @@ class Service:
                           'startOnCreate' : True,
                           'tty' : True,
                           'ports': self.ports,
+                          'healthCheck' : self.healthcheck,
                           'networkMode': self.network_mode,
                           'environment': self.env_vars,
                           'labels': self.labels,
@@ -142,6 +144,21 @@ class Service:
 
         if resp.status_code != 202:
             raise ValueError("Removing Service failed:", resp.json())
+
+    def add_healthcheck(self, port, method, path):
+
+        request_line = method.upper() + " " + '"' + path + '"' + " " + '"HTTP/1.0"'
+        self.healthcheck =  { "type": "instanceHealthCheck",
+                              "healthyThreshold": 2,
+                              "initializingTimeout": 60000,
+                              "interval": 2000,
+                              "name": None,
+                              "port": port,
+                              "reinitializingTimeout": 60000,
+                              "requestLine": request_line,
+                              "responseTimeout": 2000,
+                              "strategy": "recreate",
+                              "unhealthyThreshold": 3} 
         
     def __repr__(self):
         return self.name

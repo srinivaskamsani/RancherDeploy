@@ -41,14 +41,14 @@ def test_create_new_service():
     expected_service.env_vars = {'var1': 'val1'}
     expected_service.labels = {'label1' : 'val2'}
     expected_service.ports = ['80/tcp']
-
+    expected_service.add_healthcheck('80', 'GET', '/')
+    
     rancher.create_new_stack(new_stack_name)
     test_stacks = list(filter(lambda x: x=="RancherDeployTest", rancher.stacks))
     test_stacks[0].create_new_service(expected_service)
 
     time.sleep(10)
     test_services = list(filter(lambda x: x=="RancherDeployTest",test_stacks[0].services))
-
     actual_service = test_services[0]
     
     assert actual_service.name == expected_service.name
