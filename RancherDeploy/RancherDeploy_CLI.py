@@ -125,5 +125,21 @@ def deletestack(**kwargs):
     target_stack = get_item_from_list(configs.rstack, rancher.stacks)
     target_stack.remove()
 
+@main.command()
+@click.option('-u', '--username', help='Rancher API Username', required=True)
+@click.option('--password', help='Rancher API Password', required=True)
+@click.option('-h', '--host', help='Rancher Server URL', required=True)
+@click.option('--api_version', help='Rancher API version', required=True)
+@click.option('--rstack', help='Rancher Stack name', required=True)
+@click.option('--rservice', help='Rancher Service name of service to be load balanced', required=True)
+def deletestack(**kwargs):
+    configs = convert(kwargs)
+    rancher_auth = (configs.username, configs.password)
+    rancher = Rancher(configs.host, rancher_auth, configs.api_version)
+
+    target_stack = get_item_from_list(configs.rstack, rancher.stacks)
+    target_service = get_item_from_list(configs.rstack, target_stack.services)
+    target_service.remove()
+    
 if __name__ == '__main__':
     main()
