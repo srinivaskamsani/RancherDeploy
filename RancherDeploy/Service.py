@@ -18,9 +18,22 @@ class Service:
         self.healthcheck = None
         self.network_mode = 'managed'
         self.log_driver = ''
+        self.memory = None
+        self.memory_reservation = None
         self.initilize()
 
+    def convert_mb_to_b(self, mb):
+        return mb * 1048576
 
+    def set_memory(self, mb):
+        if mb:
+            self.memory = self.convert_mb_to_b(int(mb))
+
+    def set_memory_reservation(self, mb):
+        if mb:
+            self.memory_reservation = self.convert_mb_to_b(int(mb))
+        
+        
     @property
     def props(self):
         return r.get(self.service_url, auth=self.rancher_auth).json()
@@ -75,6 +88,8 @@ class Service:
                           'instanceTriggeredStop': 'stop',
                           'startOnCreate' : True,
                           'tty' : True,
+                          'memory' : self.memory,
+                          'memoryReservation' : self.memory_reservation,
                           'ports': self.ports,
                           'healthCheck' : self.healthcheck,
                           'networkMode': self.network_mode,

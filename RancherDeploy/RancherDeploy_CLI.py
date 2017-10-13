@@ -50,6 +50,8 @@ def main():
 @click.option('--healthcheck_port', help='Internal container port to health check', required=False)
 @click.option('--healthcheck_method', help='GET/PUT/POST/HEAD etc. method to use for healthcheck', required=False)
 @click.option('--healthcheck_path', help='HTTP path for health check', required=False)
+@click.option('--memory', help='Container level lock', required=False)
+@click.option('--memory_reservation', help='Used by Rancher for scheduling', required=False)
 def deploy(**kwargs):
     configs = convert(kwargs)
     rancher_auth = (configs.username,configs.password)
@@ -68,6 +70,8 @@ def deploy(**kwargs):
     s.env_vars = convert_tuple_to_dict(configs.env)
     s.labels = convert_tuple_to_dict(configs.label)
     s.ports = convert_ports(configs.publish)
+    s.set_memory(configs.memory)
+    s.set_memory_reservation(configs.memory_reservation)
 
     if all([configs.healthcheck_port, configs.healthcheck_method,
                       configs.healthcheck_path]):
