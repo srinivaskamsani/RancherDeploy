@@ -52,7 +52,7 @@ def main():
 @click.option('--healthcheck_port', help='Internal container port to health check', required=False)
 @click.option('--healthcheck_method', help='GET/PUT/POST/HEAD etc. method to use for healthcheck', required=False)
 @click.option('--healthcheck_path', help='HTTP path for health check', required=False)
-@click.option('--memory', help='Container level lock', required=False)
+@click.option('--memory', help='Container level memory lock', required=False)
 @click.option('--memory_reservation', help='Used by Rancher for scheduling', required=False)
 def deploy(**kwargs):
     configs = convert(kwargs)
@@ -145,7 +145,7 @@ def deletestack(**kwargs):
 @click.option('--api_version', help='Rancher API version', required=True)
 @click.option('--rstack', help='Rancher Stack name', required=True)
 @click.option('--rservice', help='Rancher Service name of service to be load balanced', required=True)
-def deletestack(**kwargs):
+def deleteservice(**kwargs):
     configs = convert(kwargs)
     rancher_auth = (configs.username, configs.password)
     rancher = Rancher(configs.host, rancher_auth, configs.api_version)
