@@ -4,6 +4,8 @@ from collections import namedtuple
 import logging
 import re
 from RancherDeploy.Service import Service
+from datetime import datetime
+
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', ''])
 
 def get_item_from_list(item, lst):
@@ -111,6 +113,13 @@ def SetUpLB(**kwargs):
     if lb_name in services:
         target_lb = get_item_from_list(lb_name, services)
         target_lb.remove()
+        start_time = datetime.now()
+        
+        while lb_name in stack.services:
+            # https://stackoverflow.com/a/44404201
+            time_delta = datetime.now() - start_time
+            if time_delta.seconds >= 10:
+                break
         
     target_service = get_item_from_list(configs.rservice, services)
     target_service.create_load_balancer(configs.lb_source_port, configs.lb_target_port, convert_tuple_to_dict(configs.label))
