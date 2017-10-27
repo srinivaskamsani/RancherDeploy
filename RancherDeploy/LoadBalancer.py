@@ -1,6 +1,16 @@
+'''
+This module provides tools to
+manipulate load balancers in Rancher
+'''
+
 import requests as r
 
+
 class LoadBalancer:
+    '''
+    Class models load balancers in Rancher
+    '''
+
     def __init__(self, lb_url, auth):
         self.lb_url = lb_url
         self.rancher_auth = auth
@@ -15,8 +25,12 @@ class LoadBalancer:
         self.labels = {}
         self.name = None
         self.initilize()
-        
+
     def initilize(self):
+        '''
+        Cache relevent values obtained from calling the
+        load balancer endpoint of the rancher API.
+        '''
         if self.lb_url:
             self.props = r.get(self.lb_url, auth=self.rancher_auth).json()
             self.image_name = self.props['launchConfig']['imageUuid']
@@ -25,20 +39,27 @@ class LoadBalancer:
             self.lb_ports = self.props['launchConfig']['ports']
             self.source_port = self.props['lbConfig']['portRules'][0]['sourcePort']
             self.target_port = self.props['lbConfig']['portRules'][0]['targetPort']
-            self.service_id  = self.props['lbConfig']['portRules'][0]['serviceId']
+            self.service_id = self.props['lbConfig']['portRules'][0]['serviceId']
             self.stack_id = self.props['stackId']
-            
+
     def __repr__(self):
         return self.name
 
     def update_launch_config_request(self):
+        '''
+        Return lauch_config based on current attributes
+        '''
         port = str(self.source_port) + ":" + str(self.source_port) + "/tcp"
-        return {'imageUuid' : 'docker:rancher/lb-service-haproxy:v0.7.5',
-                'ports' : [port],
+        return {'imageUuid': 'docker:rancher/lb-service-haproxy:v0.7.5',
+                'ports': [port],
                 'labels': self.labels,
-                'startOnCreate' : True}
+                'startOnCreate': True}
 
     def update_lb_config_request(self):
+        '''
+        Construct and return lb config request based on current
+        attribues
+        '''
         return {'portRules': [{'path': '',
                                'priority': 1,
                                'protocol': 'http',
@@ -46,21 +67,27 @@ class LoadBalancer:
                                'sourcePort': self.source_port,
                                'targetPort': self.target_port,
                                'type': 'portRule'}]}
-    
+
     def update_lb_request(self):
-        return {'launchConfig' : self.update_launch_config_request(),
+        '''
+        Return lb request based on current attributes
+        '''
+        return {'launchConfig': self.update_launch_config_request(),
                 'lbConfig': self.update_lb_config_request(),
                 'name': self.name,
                 'scale': 1,
-                'scalePolicy' : '',
+                'scalePolicy': '',
                 'stackId': self.stack_id,
                 'startOnCreate': True}
 
     def remove(self):
+        '''
+        Remove load balancer from Rancher
+        '''
         remove_url = self.props['actions']['remove']
         resp = r.post(remove_url, auth=self.rancher_auth)
         if resp.status_code != 202:
             raise ValueError("Unable to remove load balancer", resp.json())
-        
+
     def __eq__(self, other):
         return self.name == other

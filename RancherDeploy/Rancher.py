@@ -1,20 +1,33 @@
-import requests as r
-from  RancherDeploy.Stack import Stack
-from RancherDeploy.Host import Host
-from urllib.parse import urljoin
+'''
+Module provides functions to operate
+Rancher
+'''
+
 import logging
 import sys
+from urllib.parse import urljoin
+from RancherDeploy.Stack import Stack
+from RancherDeploy.Host import Host
+import requests as r
 
 class Rancher:
+    '''
+    Class models Rancher
+    '''
+
     def __init__(self, rancher_url, rancher_auth, api_verison):
         self.rancher_url = rancher_url
         self.rancher_auth = rancher_auth
         self.api_verison = api_verison
         self.api_endpoint = urljoin(self.rancher_url, self.api_verison)
-        self.rancher_props = r.get(self.api_endpoint, auth=self.rancher_auth).json()
+        self.rancher_props = r.get(
+            self.api_endpoint, auth=self.rancher_auth).json()
 
     @property
     def stacks(self):
+        '''
+        Return a list of all stakcs in Rancher
+        '''
         projects_url = self.rancher_props['links']['projects']
         projects = r.get(projects_url, auth=self.rancher_auth).json()
         stacks_url = projects['data'][0]['links']['stacks']
@@ -28,6 +41,9 @@ class Rancher:
 
     @property
     def hosts(self):
+        '''
+        Return a list of all Hosts in Rancher
+        '''
         host_url = self.rancher_props['links']['hosts']
         hosts = r.get(host_url, auth=self.rancher_auth).json()['data']
 
@@ -37,26 +53,25 @@ class Rancher:
             hosts_accum.append(h)
 
         return hosts_accum
-            
-        
+
     def create_new_stack(self, stack_name):
+        '''
+        Create a new stack with name as stack_name
+        '''
         projects_url = self.rancher_props['links']['projects']
         projects = r.get(projects_url, auth=self.rancher_auth).json()
         stacks_url = projects['data'][0]['links']['stacks']
         stacks = r.get(stacks_url, auth=self.rancher_auth).json()
         create_endpoint = stacks['createTypes']['stack']
         new_stack_request = self.__new_stack_request(stack_name)
-        resp = r.post(create_endpoint, data=new_stack_request, auth=self.rancher_auth)
+        resp = r.post(create_endpoint, data=new_stack_request,
+                      auth=self.rancher_auth)
         if resp.status_code != 201:
             logging.fatal("Unable to create stack: %s", resp.text)
             sys.exit(1)
-        
 
     def __new_stack_request(self, stack_name):
         return {"name": stack_name,
                 "system": False,
-                "dockerCompose":"",
-                "rancherCompose":""}
-        
-
-    
+                "dockerCompose": "",
+                "rancherCompose": ""}
