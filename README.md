@@ -40,28 +40,35 @@ Once inside the container, RancherDeploy should be available as a CLI.
 
 ### Commands
 
-| Command | Description                       |
-|---------+-----------------------------------|
-| deploy  | Deploy a service/stack to rancher |
-| setuplb | Deploy a Load Balancer            |
+| Command       | Description                       |
+|---------------+-----------------------------------|
+| deploy        | Deploy a service/stack to rancher |
+| setuplb       | Deploy a Load Balancer            |
+| deletestack   | Delete an entire stack            |
+| deleteservice | Delete a service                  |
 
 
 ### ARGS
 
 For the deploy command
 
-| ARG            | Description                               | Required |
-|----------------+-------------------------------------------+----------|
-| -u, --username | Rancher API Username                      | Yes      |
-| --password     | Rancher API Password                      | Yes      |
-| -h, --host     | Rancher Server URL                        | Yes      |
-| --api_version  | Rancher API version                       | Yes      |
-| --rservice     | Rancher Service name                      | Yes      |
-| --rstack       | Rancher Stack name                        | Yes      |
-| -l, --label    | set meta data on a container              | No       |
-| -p, --publish  | Publish a container’s port(s) to the host | No       |
-| --image        | image name                                | yes      |
-| -e, --env      | Set environment variables                 | No       |
+| ARG                  | Description                                          | Required |
+|----------------------+------------------------------------------------------+----------|
+| -u, --username       | Rancher API Username                                 | Yes      |
+| --password           | Rancher API Password                                 | Yes      |
+| -h, --host           | Rancher Server URL                                   | Yes      |
+| --api_version        | Rancher API version                                  | Yes      |
+| --rservice           | Rancher Service name                                 | Yes      |
+| --rstack             | Rancher Stack name                                   | Yes      |
+| -l, --label          | set meta data on a container                         | No       |
+| -p, --publish        | Publish a container’s port(s) to the host            | No       |
+| --image              | image name                                           | yes      |
+| -e, --env            | Set environment variables                            | No       |
+| --healthcheck_port   | Internal container port to health check              | No       |
+| --healthcheck_method | GET/PUT/POST/HEAD etc. method to use for healthcheck | No       |
+| --healthcheck_path   | HTTP parth for health check                          | No       |
+| --memory             | Container level memory lock                          | No       |
+| --memory_reservation | Used by Rancher for scheduling                       | No       |
 
 Example:
 
@@ -112,6 +119,29 @@ RancherDeploy setuplb \
 -l GATEWAY_URI=/ConvertProductId \
 -l ENVIRONMENT=DEV
 ```
+
+
+for the deletestack command
+
+| ARG              | Description                                                  | Required |
+|------------------+--------------------------------------------------------------+----------|
+| -u, --username   | Rancher API Username                                         | Yes      |
+| --password       | Rancher API Password                                         | Yes      |
+| -h, --host       | Rancher Server URL                                           | Yes      |
+| --api_version    | Rancher API version                                          | Yes      |
+| --rstack         | Rancher Stack name                                           | Yes      |
+
+for the deleteservice commnad 
+
+| ARG              | Description                                                  | Required |
+|------------------+--------------------------------------------------------------+----------|
+| -u, --username   | Rancher API Username                                         | Yes      |
+| --password       | Rancher API Password                                         | Yes      |
+| -h, --host       | Rancher Server URL                                           | Yes      |
+| --api_version    | Rancher API version                                          | Yes      |
+| --rservice       | Rancher Service name of service to be load balanced          | Yes      |
+| --rstack         | Rancher Stack name                                           | Yes      |
+
 ## Troubleshooting
 
 

@@ -15,11 +15,25 @@ class Service:
         self.ports = []
         self.env_vars = {}
         self.labels = {}
+        self.healthcheck = None
         self.network_mode = 'managed'
         self.log_driver = ''
+        self.memory = None
+        self.memory_reservation = None
         self.initilize()
 
+    def convert_mb_to_b(self, mb):
+        return mb * 1048576
 
+    def set_memory(self, mb):
+        if mb:
+            self.memory = self.convert_mb_to_b(int(mb))
+
+    def set_memory_reservation(self, mb):
+        if mb:
+            self.memory_reservation = self.convert_mb_to_b(int(mb))
+        
+        
     @property
     def props(self):
         return r.get(self.service_url, auth=self.rancher_auth).json()
@@ -74,7 +88,10 @@ class Service:
                           'instanceTriggeredStop': 'stop',
                           'startOnCreate' : True,
                           'tty' : True,
+                          'memory' : self.memory,
+                          'memoryReservation' : self.memory_reservation,
                           'ports': self.ports,
+                          'healthCheck' : self.healthcheck,
                           'networkMode': self.network_mode,
                           'environment': self.env_vars,
                           'labels': self.labels,
@@ -135,6 +152,28 @@ class Service:
 
         if resp.status_code != 201:
             raise ValueError("Could not create LB :", resp.json())
+
+    def remove(self):
+        remove_url = self.props['actions']['remove']
+        resp = r.post(remove_url, auth=self.rancher_auth)
+
+        if resp.status_code != 202:
+            raise ValueError("Removing Service failed:", resp.json())
+
+    def add_healthcheck(self, port, method, path):
+
+        request_line = method.upper() + " " + '"' + path + '"' + " " + '"HTTP/1.0"'
+        self.healthcheck =  { "type": "instanceHealthCheck",
+                              "healthyThreshold": 2,
+                              "initializingTimeout": 60000,
+                              "interval": 2000,
+                              "name": None,
+                              "port": port,
+                              "reinitializingTimeout": 60000,
+                              "requestLine": request_line,
+                              "responseTimeout": 2000,
+                              "strategy": "recreate",
+                              "unhealthyThreshold": 3} 
         
     def __repr__(self):
         return self.name

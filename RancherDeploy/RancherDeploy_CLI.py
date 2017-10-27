@@ -4,6 +4,8 @@ from collections import namedtuple
 import logging
 import re
 from RancherDeploy.Service import Service
+from datetime import datetime
+
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help', ''])
 
 def get_item_from_list(item, lst):
@@ -47,6 +49,11 @@ def main():
 @click.option('--image', help='image name', required=True)
 @click.option('-e', '--env', help='Set environment variables', required=False, multiple=True)
 @click.option('-l', '-label', help='Set meta data on a container', required=False, multiple=True)
+@click.option('--healthcheck_port', help='Internal container port to health check', required=False)
+@click.option('--healthcheck_method', help='GET/PUT/POST/HEAD etc. method to use for healthcheck', required=False)
+@click.option('--healthcheck_path', help='HTTP path for health check', required=False)
+@click.option('--memory', help='Container level memory lock', required=False)
+@click.option('--memory_reservation', help='Used by Rancher for scheduling', required=False)
 def deploy(**kwargs):
     configs = convert(kwargs)
     rancher_auth = (configs.username,configs.password)
@@ -65,8 +72,14 @@ def deploy(**kwargs):
     s.env_vars = convert_tuple_to_dict(configs.env)
     s.labels = convert_tuple_to_dict(configs.label)
     s.ports = convert_ports(configs.publish)
+    s.set_memory(configs.memory)
+    s.set_memory_reservation(configs.memory_reservation)
 
-    
+    if all([configs.healthcheck_port, configs.healthcheck_method,
+                      configs.healthcheck_path]):
+        
+        s.add_healthcheck(configs.healthcheck_port, configs.healthcheck_method,
+                          configs.healthcheck_path)
     if configs.rservice not in stack.services:
         new_service = stack.create_new_service(s)
     else:
@@ -100,9 +113,46 @@ def SetUpLB(**kwargs):
     if lb_name in services:
         target_lb = get_item_from_list(lb_name, services)
         target_lb.remove()
+        start_time = datetime.now()
+        
+        while lb_name in stack.services:
+            # https://stackoverflow.com/a/44404201
+            time_delta = datetime.now() - start_time
+            if time_delta.seconds >= 10:
+                break
         
     target_service = get_item_from_list(configs.rservice, services)
     target_service.create_load_balancer(configs.lb_source_port, configs.lb_target_port, convert_tuple_to_dict(configs.label))
+
+@main.command()
+@click.option('-u', '--username', help='Rancher API Username', required=True)
+@click.option('--password', help='Rancher API Password', required=True)
+@click.option('-h', '--host', help='Rancher Server URL', required=True)
+@click.option('--api_version', help='Rancher API version', required=True)
+@click.option('--rstack', help='Rancher Stack name', required=True)
+def deletestack(**kwargs):
+    configs = convert(kwargs)
+    rancher_auth = (configs.username, configs.password)
+    rancher = Rancher(configs.host, rancher_auth, configs.api_version)
+
+    target_stack = get_item_from_list(configs.rstack, rancher.stacks)
+    target_stack.remove()
+
+@main.command()
+@click.option('-u', '--username', help='Rancher API Username', required=True)
+@click.option('--password', help='Rancher API Password', required=True)
+@click.option('-h', '--host', help='Rancher Server URL', required=True)
+@click.option('--api_version', help='Rancher API version', required=True)
+@click.option('--rstack', help='Rancher Stack name', required=True)
+@click.option('--rservice', help='Rancher Service name of service to be load balanced', required=True)
+def deleteservice(**kwargs):
+    configs = convert(kwargs)
+    rancher_auth = (configs.username, configs.password)
+    rancher = Rancher(configs.host, rancher_auth, configs.api_version)
+
+    target_stack = get_item_from_list(configs.rstack, rancher.stacks)
+    target_service = get_item_from_list(configs.rstack, target_stack.services)
+    target_service.remove()
     
 if __name__ == '__main__':
     main()

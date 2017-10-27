@@ -45,6 +45,13 @@ class Stack:
 
         return Service(resp.json()['links']['self'], self.rancher_auth)
 
+    def remove(self):
+        remove_url = self.props['actions']['remove']
+        resp = r.post(remove_url, auth=self.rancher_auth)
+
+        if resp.status_code != 202:
+            raise ValueError("Removing Stack failed:", resp.json())
+        
     def __repr__(self):
         return self.name
 
