@@ -42,13 +42,13 @@ Once inside the container, RancherDeploy should be available as a CLI.
 ### Options
 
 | Option | Description                |
-|--------+----------------------------|
+| ------ | -------------------------- |
 | --help | Show this message and exit |
 
 ### Commands
 
 | Command       | Description                       |
-|---------------+-----------------------------------|
+| ------------- | --------------------------------- |
 | deploy        | Deploy a service/stack to rancher |
 | setuplb       | Deploy a Load Balancer            |
 | deletestack   | Delete an entire stack            |
@@ -60,7 +60,7 @@ Once inside the container, RancherDeploy should be available as a CLI.
 For the deploy command
 
 | ARG                  | Description                                          | Required |
-|----------------------+------------------------------------------------------+----------|
+| -------------------- | ---------------------------------------------------- | -------- |
 | -u, --username       | Rancher API Username                                 | Yes      |
 | --password           | Rancher API Password                                 | Yes      |
 | -h, --host           | Rancher Server URL                                   | Yes      |
@@ -95,7 +95,7 @@ RancherDeploy deploy \
 For the setuplb command
 
 | ARG              | Description                                                  | Required |
-|------------------+--------------------------------------------------------------+----------|
+| ---------------- | ------------------------------------------------------------ | -------- |
 | -u, --username   | Rancher API Username                                         | Yes      |
 | --password       | Rancher API Password                                         | Yes      |
 | -h, --host       | Rancher Server URL                                           | Yes      |
@@ -124,7 +124,7 @@ RancherDeploy setuplb \
 for the deletestack command
 
 | ARG              | Description                                                  | Required |
-|------------------+--------------------------------------------------------------+----------|
+| ---------------- | ------------------------------------------------------------ | -------- |
 | -u, --username   | Rancher API Username                                         | Yes      |
 | --password       | Rancher API Password                                         | Yes      |
 | -h, --host       | Rancher Server URL                                           | Yes      |
@@ -134,7 +134,7 @@ for the deletestack command
 for the deleteservice commnad 
 
 | ARG              | Description                                                  | Required |
-|------------------+--------------------------------------------------------------+----------|
+| ---------------- | ------------------------------------------------------------ | -------- |
 | -u, --username   | Rancher API Username                                         | Yes      |
 | --password       | Rancher API Password                                         | Yes      |
 | -h, --host       | Rancher Server URL                                           | Yes      |
