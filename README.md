@@ -17,10 +17,10 @@ that you can use to create your own tools and utilities.
 
 ### PIP
 
-RanchdeDeploy is available in pypi and can be installed 
+RancherDeploy is available in pypi and can be installed 
 using pip : 
 
-``` pip install rancherdelpoy  ```
+``` pip install rancherdeploy  ```
 
 ### Docker
 
@@ -174,7 +174,7 @@ below demonstrates some of these functionalities.
 
 
 This script was developed against the v2-beta api and Rancher
-V1.6.2. No other versions were tested.  If any error occur, verify the
+V1.6.2. No other versions were tested.  If any error occurs, verify the
 version of Rancher and the API.
 
 ## How to contribute

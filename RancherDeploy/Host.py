@@ -1,5 +1,5 @@
 '''
-This module contains all opertaions
+This module contains all operations
 related to Hosts in Rancher
 '''
 
