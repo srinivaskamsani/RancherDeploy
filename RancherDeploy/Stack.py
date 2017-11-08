@@ -54,8 +54,9 @@ class Stack:
         create_service_url = services_prop['createTypes']['service']
         payload = service.update_service_request()
         payload['stackId'] = self.props['id']
-        payload['scalePolicy'] = ""
+        payload['scalePolicy'] = None
         payload['lbConfig'] = ""
+
         resp = r.post(create_service_url, data=json.dumps(
             payload), auth=self.rancher_auth)
 
